@@ -15,7 +15,7 @@ from . import events, runners, web
 from .core import HttpLocust, Locust
 from .inspectlocust import get_task_ratio_dict, print_task_ratio
 from .log import console_logger, setup_logging
-from .runners import LocalLocustRunner, MasterLocustRunner, SlaveLocustRunner
+from .runners import LocalLocustRunner, MasterLocustRunner, SlaveLocustRunner, K8sLocustRunner
 from .stats import (print_error_report, print_percentile_stats, print_stats,
                     stats_printer, stats_writer, write_stat_csvs)
 from .util.time import parse_timespan
@@ -87,7 +87,16 @@ def parse_options():
         action='store_true',
         dest='masterk8s',
         default=False,
-        help="Set locust to run in distributed on Kubernetes"
+        help="Set locust to run in distributed mode on Kubernetes"
+    )
+
+    # kubernetes deployment file to be used when running in distributed k8s mode
+    # see: --master-k8s
+    parser.add_option(
+        '--deployment-filename',
+        type=str,
+        dest='deployment_filename',
+        help="Kubernetes deployment file for the slaves"
     )
 
     # if locust should be run in distributed mode as slave
@@ -389,7 +398,7 @@ def main():
 
     locustfile = find_locustfile(options.locustfile)
 
-    if options.slave and not locustfile:
+    if not locustfile:
         logger.error("Could not find any locustfile! Ensure file ends in '.py' and see --help for available options.")
         sys.exit(1)
 
@@ -407,6 +416,11 @@ def main():
 
     if not locusts:
         logger.error("No Locust class found!")
+        sys.exit(1)
+
+    if options.deployment_filename and \
+        not os.path.isfile(options.deployment_filename):
+        logger.error("Could not find kubernetes deployment file!")
         sys.exit(1)
 
     # make sure specified Locust exists
@@ -460,7 +474,7 @@ def main():
         logger.info("Starting web monitor at %s:%s" % (options.web_host or "*", options.port))
         main_greenlet = gevent.spawn(web.start, locust_classes, options)
 
-    if not options.master and not options.slave:
+    if not options.master and not options.slave and not options.masterk8s:
         runners.locust_runner = LocalLocustRunner(locust_classes, options)
         # spawn client spawning/hatching greenlet
         if options.no_web:
@@ -481,8 +495,7 @@ def main():
             if options.run_time:
                 spawn_run_time_limit_greenlet()
     elif options.masterk8s and not options.master:
-        # configure K8sLocustRunner
-        exit(123)
+        runners.locust_runner = K8sLocustRunner(options)
     elif options.slave:
         if options.run_time:
             logger.error("--run-time should be specified on the master node, and not on slave nodes")
