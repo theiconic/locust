@@ -436,7 +436,7 @@ class K8sLocustRunner(LocustRunner):
 
         self.raw_deployment_definition = raw_deployment_definition
         self.namespace = self.generate_namespace()
-        self.deployment = self.setup_deployment(raw_deployment_definition)
+        self.slave_deployment = self.setup_deployment(raw_deployment_definition)
 
     def generate_namespace(self):
         """
@@ -505,7 +505,7 @@ class K8sLocustRunner(LocustRunner):
 
     def spawn_locusts(self, spawn_count=None, stop_timeout=None, wait=False):
         scale = self.k8s_client.ExtensionsV1beta1Api().read_namespaced_deployment_scale(
-            name=self.deployment.metadata.name,
+            name=self.slave_deployment.metadata.name,
             namespace=self.namespace,
             pretty=True
         )
@@ -513,7 +513,7 @@ class K8sLocustRunner(LocustRunner):
         scale.spec.replicas = spawn_count
 
         self.k8s_client.ExtensionsV1beta1Api().patch_namespaced_deployment_scale(
-            name=self.deployment.metadata.name,
+            name=self.slave_deployment.metadata.name,
             namespace=self.namespace,
             body=scale
         )
