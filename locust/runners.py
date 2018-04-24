@@ -471,7 +471,6 @@ class K8sLocustRunner(LocustRunner):
         fixed_containers = []
 
         for container in deployment['spec']['template']['spec']['containers']:
-            # import ipdb; ipdb.set_trace()
             if 'env' not in container:
                 container['env'] = []
 
