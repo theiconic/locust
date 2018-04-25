@@ -423,6 +423,9 @@ class K8sLocustRunner(LocustRunner):
         from kubernetes import client as k8s_client, config
         self.k8s_client = k8s_client
 
+        # make sure we bind to all available IPs
+        options.master_host = '0.0.0.0'
+
         super(K8sLocustRunner, self).__init__([], options)
 
         try:
