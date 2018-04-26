@@ -423,7 +423,15 @@ class K8sLocustRunner(LocustRunner):
         from kubernetes import client as k8s_client, config
         self.k8s_client = k8s_client
 
-        # make sure we bind to all available IPs
+        # we need to differenciate how the master uses master_host to
+        # bind to an IP and how we configure the slaves to connect to the master
+
+        # this property has the real master ip to be set to the slaves
+        self.master_host_k8s_ip = options.master_host
+
+        # for the master process itself, let's just bind to all
+        # available IPs. we must keep this with a value bindable ip for
+        # compatibility reasons. See: SlaveLocustRunner.__init__
         options.master_host = '0.0.0.0'
 
         super(K8sLocustRunner, self).__init__([], options)
@@ -497,7 +505,7 @@ class K8sLocustRunner(LocustRunner):
             })
             container['env'].append({
                 'name': 'LOCUST_MASTER_HOST',
-                'value': self.options.master_host
+                'value': self.master_host_k8s_ip
             })
 
             fixed_containers.append(container)
