@@ -427,7 +427,7 @@ class K8sLocustRunner(LocustRunner):
         # bind to an IP and how we configure the slaves to connect to the master
 
         # this property has the real master ip to be set to the slaves
-        self.master_host_k8s_ip = options.master_host
+        self.master_host_k8s = options.master_host
 
         # for the master process itself, let's just bind to all
         # available IPs. we must keep this with a value bindable ip for
@@ -505,7 +505,7 @@ class K8sLocustRunner(LocustRunner):
             })
             container['env'].append({
                 'name': 'LOCUST_MASTER_HOST',
-                'value': self.master_host_k8s_ip
+                'value': self.master_host_k8s
             })
 
             fixed_containers.append(container)
